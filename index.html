@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Farming - Duelo Automático de Aura</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0b12;
+      --card-bg: rgba(22, 22, 38, 0.85);
+      --p1-color: #00f0ff;
+      --p1-glow: rgba(0, 240, 255, 0.4);
+      --p2-color: #ff007f;
+      --p2-glow: rgba(255, 0, 127, 0.4);
+      --accent-gold: #ffe600;
+      --fail-color: #ff2a6d;
+      --font-title: 'Outfit', sans-serif;
+      --font-body: 'Space Grotesk', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #fff;
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: hidden;
+      padding: 20px;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 0, 127, 0.08) 0%, transparent 40%);
+    }
+
+    /* HEADER & SCOREBOARD */
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    h1 {
+      font-family: var(--font-title);
+      font-size: 2.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3),
+                   0 0 20px var(--p1-color),
+                   0 0 30px var(--p2-color);
+      margin-bottom: 15px;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 15px 30px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .score-box {
+      text-align: center;
+    }
+
+    .score-box h2 {
+      font-family: var(--font-title);
+      font-size: 1.3rem;
+      margin-bottom: 5px;
+    }
+
+    .p1-text { color: var(--p1-color); text-shadow: 0 0 10px var(--p1-glow); }
+    .p2-text { color: var(--p2-color); text-shadow: 0 0 10px var(--p2-glow); }
+
+    .score-val {
+      font-family: var(--font-title);
+      font-size: 2.5rem;
+      font-weight: 900;
+      transition: transform 0.2s ease;
+    }
+
+    .turn-info {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* BATTLE ARENA */
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      max-width: 1000px;
+      flex-grow: 1;
+      position: relative;
+      margin: 20px 0;
+    }
+
+    .player-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 25px;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      border: 2px solid transparent;
+      backdrop-filter: blur(10px);
+    }
+
+    #player1-card {
+      border-color: rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+    }
+
+    #player2-card {
+      border-color: rgba(255, 0, 127, 0.3);
+      box-shadow: 0 0 20px rgba(255, 0, 127, 0.15);
+    }
+
+    .player-card.active-turn {
+      transform: scale(1.08);
+    }
+
+    #player1-card.active-turn {
+      border-color: var(--p1-color);
+      box-shadow: 0 0 35px var(--p1-color), inset 0 0 15px var(--p1-color);
+    }
+
+    #player2-card.active-turn {
+      border-color: var(--p2-color);
+      box-shadow: 0 0 35px var(--p2-color), inset 0 0 15px var(--p2-color);
+    }
+
+    .avatar-container {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      position: relative;
+      background: #0f0f1a;
+      overflow: visible;
+    }
+
+    .avatar-emoji {
+      font-size: 4.5rem;
+      z-index: 2;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+    }
+
+    .aura-glow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: pulse-aura 2s infinite alternate;
+      z-index: 1;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    #p1-aura { background: radial-gradient(circle, var(--p1-color) 0%, transparent 70%); }
+    #p2-aura { background: radial-gradient(circle, var(--p2-color) 0%, transparent 70%); }
+
+    /* MOVE ANNOUNCEMENT CENTER */
+    .action-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 20;
+      width: 100%;
+    }
+
+    .move-banner {
+      display: inline-block;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-family: var(--font-title);
+      font-weight: 900;
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0;
+    }
+
+    .move-banner.epic {
+      background: var(--p1-color);
+      color: #000;
+      box-shadow: 0 0 30px var(--p1-glow);
+    }
+
+    .move-banner.fail {
+      background: var(--fail-color);
+      color: #fff;
+      box-shadow: 0 0 30px rgba(255, 42, 109, 0.6);
+    }
+
+    .aura-change {
+      font-family: var(--font-title);
+      font-size: 2.8rem;
+      font-weight: 900;
+      margin-top: 5px;
+      opacity: 0;
+    }
+
+    /* CONTROLS & LOG */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .btn {
+      font-family: var(--font-title);
+      background: linear-gradient(45deg, #00f0ff, #ff007f);
+      color: white;
+      border: none;
+      padding: 18px 40px;
+      font-size: 1.3rem;
+      font-weight: 900;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 25px rgba(0, 240, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      width: 100%;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 10px 35px rgba(255, 0, 127, 0.6);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+    }
+
+    /* HISTORIAL / LOG DE BATALLA */
+    .log-container {
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 15px;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .log-title {
+      font-size: 0.8rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .log-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-item {
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-between;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .log-item.p1 { border-left: 3px solid var(--p1-color); }
+    .log-item.p2 { border-left: 3px solid var(--p2-color); }
+
+    /* MODAL WINNER */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 3px solid var(--accent-gold);
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 50px var(--accent-gold);
+      transform: scale(0.7);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: scale(1);
+    }
+
+    .winner-title {
+      font-family: var(--font-title);
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--accent-gold);
+      margin-bottom: 15px;
+      text-shadow: 0 0 15px var(--accent-gold);
+    }
+
+    /* ANIMACIONES CSS */
+    @keyframes pulse-aura {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      100% { transform: scale(1.25); opacity: 0.9; }
+    }
+
+    /* Animación extendida para permitir leer el nombre del movimiento */
+    .anim-banner-stay {
+      animation: bannerStay 2.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes bannerStay {
+      0% { opacity: 0; transform: translateY(-20px) scale(0.8); }
+      12% { opacity: 1; transform: translateY(0) scale(1.05); }
+      20% { transform: translateY(0) scale(1); }
+      80% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-15px) scale(0.9); }
+    }
+
+    /* Movimientos del Avatar */
+    .anim-sixseven { animation: danceSixSeven 0.8s infinite alternate ease-in-out; }
+    .anim-mewing { animation: jawlineFlex 0.6s ease-in-out infinite alternate; }
+    .anim-siu { animation: jumpSpin 0.7s ease-out; }
+    .anim-fail { animation: failShake 0.6s ease-in-out; }
+
+    @keyframes danceSixSeven {
+      0% { transform: rotate(-15deg) scale(1.1) translateX(-15px); }
+      100% { transform: rotate(15deg) scale(1.1) translateX(15px); }
+    }
+
+    @keyframes jawlineFlex {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.3) translateY(-10px); filter: brightness(1.5); }
+    }
+
+    @keyframes jumpSpin {
+      0% { transform: scale(1) translateY(0) rotate(0deg); }
+      50% { transform: scale(1.4) translateY(-30px) rotate(180deg); }
+      100% { transform: scale(1.1) translateY(0) rotate(360deg); }
+    }
+
+    @keyframes failShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-20px) rotate(-10deg); }
+      40% { transform: translateX(20px) rotate(10deg); }
+      60% { transform: translateX(-10px); }
+      80% { transform: translateX(10px); }
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: fall 2.5s linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @media (max-width: 768px) {
+      .arena { flex-direction: column; gap: 20px; }
+      .player-card { width: 90%; }
+      h1 { font-size: 1.8rem; }
+      .move-banner { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Batalla de Aura</h1>
+    <div class="scoreboard">
+      <div class="score-box">
+        <h2 class="p1-text">Jugador 1</h2>
+        <div id="p1-score" class="score-val p1-text">0</div>
+      </div>
+      <div class="turn-info">
+        <div>Movimiento <span id="turn-num">0</span> / 10</div>
+        <div id="turn-txt" style="margin-top: 5px; font-size: 0.85rem; color: #aaa;">Listo para comenzar</div>
+      </div>
+      <div class="score-box">
+        <h2 class="p2-text">Jugador 2</h2>
+        <div id="p2-score" class="score-val p2-text">0</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="arena">
+    <!-- JUGADOR 1 -->
+    <div id="player1-card" class="player-card">
+      <div class="avatar-container">
+        <div id="p1-aura" class="aura-glow"></div>
+        <div id="p1-avatar" class="avatar-emoji">🗿</div>
+      </div>
+      <h3 class="p1-text">Jugador 1</h3>
+    </div>
+
+    <!-- CENTRO DE ANUNCIOS -->
+    <div class="action-display">
+      <div id="move-banner" class="move-banner"></div>
+      <div id="aura-change" class="aura-change"></div>
+    </div>
+
+    <!-- JUGADOR 2 -->
+    <div id="player2-card" class="player-card">
+      <div class="avatar-container">
+        <div id="p2-aura" class="aura-glow"></div>
+        <div id="p2-avatar" class="avatar-emoji">👑</div>
+      </div>
+      <h3 class="p2-text">Jugador 2</h3>
+    </div>
+  </main>
+
+  <footer class="controls">
+    <button id="btn-start" class="btn">🚀 Iniciar Duelo Automático</button>
+
+    <div class="log-container">
+      <div class="log-title">Historial del Duelo</div>
+      <ul class="log-list" id="log-list">
+        <li class="log-item" style="color: #64748b;">El duelo aún no ha iniciado.</li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- MODAL GANADOR -->
+  <div id="winner-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 id="winner-title" class="winner-title">¡VICTORIA!</h2>
+      <p id="winner-desc" style="font-size: 1.1rem; margin-bottom: 25px; color: #cbd5e1;"></p>
+      <button id="btn-restart" class="btn">Jugar Otra Vez</button>
+    </div>
+  </div>
+
+  <script>
+    // BANCO DE MOVIMIENTOS
+    const epicMoves = [
+      { name: "Paso del Six Seven (6-7)", aura: 670, emoji: "🖐️", anim: "anim-sixseven" },
+      { name: "Mewing Supremo Ininterrumpido", aura: 850, emoji: "🗿", anim: "anim-mewing" },
+      { name: "Siuuuuu Ancestral de Cristiano", aura: 900, emoji: "⚡", anim: "anim-siu" },
+      { name: "Ataque con Croc Gigante", aura: 750, emoji: "🐊", anim: "anim-sixseven" },
+      { name: "Outfit Bermudas Rayo McQueen", aura: 800, emoji: "🏎️", anim: "anim-mewing" },
+      { name: "Cold Stare Fijo al Rival", aura: 500, emoji: "👁️", anim: "anim-mewing" },
+      { name: "Respiración Legendaria Cero Cringe", aura: 950, emoji: "🔥", anim: "anim-siu" },
+      { name: "Flexeo Divino Subterráneo", aura: 600, emoji: "🕶️", anim: "anim-sixseven" }
+    ];
+
+    const failMoves = [
+      { name: "Six Seven Descoordinado y Raro", aura: -200, emoji: "🤡", anim: "anim-fail" },
+      { name: "Tropezón Fatal con los Crocs", aura: -150, emoji: "🩹", anim: "anim-fail" },
+      { name: "Estornudo en Pleno Mewing", aura: -100, emoji: "🤧", anim: "anim-fail" },
+      { name: "Gallo Fuerte al Romper el Silencio", aura: -250, emoji: "🐓", anim: "anim-fail" },
+      { name: "Caída de Espaldas intentando el Siuuuu", aura: -300, emoji: "💥", anim: "anim-fail" }
+    ];
+
+    // ESTADO DEL JUEGO
+    let p1Aura = 0;
+    let p2Aura = 0;
+    let totalMovesPlayed = 0;
+    const maxMoves = 10; // 5 turnos cada uno (10 movimientos en total)
+    let isPlaying = false;
+
+    // ELEMENTOS DOM
+    const p1ScoreEl = document.getElementById('p1-score');
+    const p2ScoreEl = document.getElementById('p2-score');
+    const p1Card = document.getElementById('player1-card');
+    const p2Card = document.getElementById('player2-card');
+    const p1Avatar = document.getElementById('p1-avatar');
+    const p2Avatar = document.getElementById('p2-avatar');
+    const p1AuraGlow = document.getElementById('p1-aura');
+    const p2AuraGlow = document.getElementById('p2-aura');
+    
+    const turnTxt = document.getElementById('turn-txt');
+    const turnNumEl = document.getElementById('turn-num');
+    const moveBannerEl = document.getElementById('move-banner');
+    const auraChangeEl = document.getElementById('aura-change');
+    const logListEl = document.getElementById('log-list');
+    
+    const btnStart = document.getElementById('btn-start');
+    const btnRestart = document.getElementById('btn-restart');
+    const winnerModal = document.getElementById('winner-modal');
+    const winnerTitle = document.getElementById('winner-title');
+    const winnerDesc = document.getElementById('winner-desc');
+
+    btnStart.addEventListener('click', startAutoMatch);
+    btnRestart.addEventListener('click', resetMatch);
+
+    async function startAutoMatch() {
+      if (isPlaying) return;
+      isPlaying = true;
+      btnStart.disabled = true;
+      logListEl.innerHTML = "";
+
+      for (let i = 1; i <= maxMoves; i++) {
+        totalMovesPlayed = i;
+        turnNumEl.textContent = i;
+        
+        // Alternar jugador: Impar = Jugador 1, Par = Jugador 2
+        const currentPlayer = (i % 2 !== 0) ? 1 : 2;
+        
+        await executeTurn(currentPlayer);
+        
+        // Pausa entre turnos para fluidez visual
+        await sleep(300);
+      }
+
+      endMatch();
+    }
+
+    function executeTurn(player) {
+      return new Promise((resolve) => {
+        // Actualizar tarjeta e indicador de turno
+        if (player === 1) {
+          p1Card.classList.add('active-turn');
+          p2Card.classList.remove('active-turn');
+          turnTxt.textContent = "Turno: Jugador 1";
+          turnTxt.style.color = "var(--p1-color)";
+        } else {
+          p2Card.classList.add('active-turn');
+          p1Card.classList.remove('active-turn');
+          turnTxt.textContent = "Turno: Jugador 2";
+          turnTxt.style.color = "var(--p2-color)";
+        }
+
+        // Selección aleatoria (20% probabilidad de fail)
+        const isFail = Math.random() < 0.2;
+        const list = isFail ? failMoves : epicMoves;
+        const move = list[Math.floor(Math.random() * list.length)];
+
+        const activeCard = player === 1 ? p1Card : p2Card;
+        const activeAvatar = player === 1 ? p1Avatar : p2Avatar;
+        const defaultEmoji = player === 1 ? "🗿" : "👑";
+
+        // Aplicar animación y emoji
+        activeAvatar.textContent = move.emoji;
+        activeAvatar.className = "avatar-emoji " + move.anim;
+
+        // Mostrar Banner e Info de Puntos
+        moveBannerEl.textContent = move.name;
+        moveBannerEl.className = "move-banner anim-banner-stay " + (isFail ? "fail" : "epic");
+
+        auraChangeEl.textContent = (move.aura >= 0 ? "+" : "") + move.aura + " AURA";
+        auraChangeEl.style.color = move.aura >= 0 ? "#00ff66" : "#ff2a6d";
+        auraChangeEl.style.textShadow = move.aura >= 0 ? "0 0 10px #00ff66" : "0 0 10px #ff2a6d";
+        auraChangeEl.className = "aura-change anim-banner-stay";
+
+        // Sumar Aura
+        setTimeout(() => {
+          if (player === 1) {
+            p1Aura = Math.max(0, p1Aura + move.aura);
+            p1ScoreEl.textContent = p1Aura;
+            p1ScoreEl.style.transform = "scale(1.2)";
+            setTimeout(() => p1ScoreEl.style.transform = "scale(1)", 200);
+            updateAuraVisual(p1AuraGlow, p1Aura);
+          } else {
+            p2Aura = Math.max(0, p2Aura + move.aura);
+            p2ScoreEl.textContent = p2Aura;
+            p2ScoreEl.style.transform = "scale(1.2)";
+            setTimeout(() => p2ScoreEl.style.transform = "scale(1)", 200);
+            updateAuraVisual(p2AuraGlow, p2Aura);
+          }
+
+          addLog(player, move.name, move.aura);
+        }, 300);
+
+        // Duración suficiente para ver la animación completa
+        setTimeout(() => {
+          activeAvatar.className = "avatar-emoji";
+          activeAvatar.textContent = defaultEmoji;
+          moveBannerEl.className = "move-banner";
+          auraChangeEl.className = "aura-change";
+          resolve();
+        }, 2800);
+      });
+    }
+
+    function updateAuraVisual(glowEl, totalPoints) {
+      const scale = Math.min(1.8, 1 + totalPoints / 4000);
+      const opacity = Math.min(1, 0.5 + totalPoints / 6000);
+      glowEl.style.transform = `scale(${scale})`;
+      glowEl.style.opacity = opacity;
+    }
+
+    function addLog(player, moveName, points) {
+      const li = document.createElement('li');
+      li.className = `log-item p${player}`;
+      const pointsText = points >= 0 ? `+${points}` : points;
+      li.innerHTML = `<span><strong>J${player}:</strong> ${moveName}</span><strong>${pointsText}</strong>`;
+      logListEl.insertBefore(li, logListEl.firstChild);
+    }
+
+    function endMatch() {
+      p1Card.classList.remove('active-turn');
+      p2Card.classList.remove('active-turn');
+
+      let title = "";
+      let desc = "";
+
+      if (p1Aura > p2Aura) {
+        title = "¡JUGADOR 1 ES EL SEÑOR DEL AURA!";
+        desc = `Superó a su rival con ${p1Aura} puntos de Aura frente a ${p2Aura} puntos del Jugador 2.`;
+      } else if (p2Aura > p1Aura) {
+        title = "¡JUGADOR 2 ES EL SEÑOR DEL AURA!";
+        desc = `Superó a su rival con ${p2Aura} puntos de Aura frente a ${p1Aura} puntos del Jugador 1.`;
+      } else {
+        title = "¡EMPATE TÁCTICO!";
+        desc = `Ambos jugadores igualaron con ${p1Aura} puntos de Aura.`;
+      }
+
+      winnerTitle.textContent = title;
+      winnerDesc.textContent = desc;
+      winnerModal.classList.add('active');
+      createConfetti();
+    }
+
+    function resetMatch() {
+      p1Aura = 0;
+      p2Aura = 0;
+      totalMovesPlayed = 0;
+      isPlaying = false;
+
+      p1ScoreEl.textContent = "0";
+      p2ScoreEl.textContent = "0";
+      turnNumEl.textContent = "0";
+      turnTxt.textContent = "Listo para comenzar";
+      turnTxt.style.color = "#aaa";
+
+      updateAuraVisual(p1AuraGlow, 0);
+      updateAuraVisual(p2AuraGlow, 0);
+
+      winnerModal.classList.remove('active');
+      btnStart.disabled = false;
+      document.querySelectorAll('.confetti').forEach(c => c.remove());
+      logListEl.innerHTML = '<li class="log-item" style="color: #64748b;">El duelo aún no ha iniciado.</li>';
+    }
+
+    function createConfetti() {
+      const colors = ['#00f0ff', '#ff007f', '#ffe600', '#ffffff'];
+      for (let i = 0; i < 40; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+        document.body.appendChild(confetti);
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+  </script>
+</body>
+</html>
