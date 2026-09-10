@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aura Farming - FX & Audio Edition</title>
+  <title>Aura Farming - Narrator & Battle History</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -48,7 +48,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.2s ease;
     }
 
     .arena {
@@ -83,7 +82,6 @@
       transform: scale(1.03);
     }
 
-    /* ANIMACIÓN DE IMPACTO / SHAKE */
     @keyframes auraImpact {
       0% { transform: scale(1.03) translateY(0); }
       20% { transform: scale(1.15) translateY(-10px) rotate(-2deg); }
@@ -98,7 +96,7 @@
 
     .avatar-wrapper {
       width: 100%;
-      height: 160px;
+      height: 170px;
       margin: 0 auto 10px;
       background: #000;
       border-radius: 12px;
@@ -126,7 +124,6 @@
       transition: transform 0.2s ease, color 0.2s;
     }
 
-    /* ANIMACIÓN DE PUNTUACIÓN */
     @keyframes scorePop {
       0% { transform: scale(1); }
       50% { transform: scale(1.6); color: var(--gold); }
@@ -140,7 +137,6 @@
     #p1-score { color: var(--p1); }
     #p2-score { color: var(--p2); }
 
-    /* TEXTO FLOTANTE DE PUNTOS (+AURA) */
     .floating-points {
       position: absolute;
       top: 40%;
@@ -189,22 +185,35 @@
       filter: grayscale(1);
     }
 
-    .log-container {
+    /* CONTENEDOR DEL HISTORIAL DEL DUELO */
+    .history-container {
       width: 100%;
       max-width: 450px;
       background: #000;
       border: 1px solid #333;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 10px;
-      font-family: monospace;
-      font-size: 0.75rem;
-      color: #00ff66;
-      height: 90px;
+      font-size: 0.85rem;
+      height: 120px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
-    .log-entry { margin-bottom: 4px; word-break: break-all; }
-    .log-info { color: #00f0ff; }
+    .history-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #181824;
+      border-left: 4px solid #444;
+    }
+
+    .history-entry.p1 { border-left-color: var(--p1); }
+    .history-entry.p2 { border-left-color: var(--p2); }
+    .history-entry.round { border-left-color: var(--gold); background: #222210; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -213,7 +222,6 @@
   <div id="banner">PRESIONA INICIAR PARA JUGAR</div>
 
   <div class="arena">
-    <!-- JUGADOR 1 -->
     <div id="p1-card" class="player-card">
       <div style="color: var(--p1); font-weight: bold; margin-bottom: 8px;">JUGADOR 1</div>
       <div class="avatar-wrapper">
@@ -224,7 +232,6 @@
       <div id="p1-float" class="floating-points">+0</div>
     </div>
 
-    <!-- JUGADOR 2 -->
     <div id="p2-card" class="player-card">
       <div style="color: var(--p2); font-weight: bold; margin-bottom: 8px;">JUGADOR 2</div>
       <div class="avatar-wrapper">
@@ -238,28 +245,44 @@
 
   <button id="start-btn" class="btn-start">INICIAR DUELO</button>
 
-  <div style="width: 100%; max-width: 450px; margin-bottom: 5px; font-size: 0.8rem; color: #888;">LOGS DE SISTEMA Y AUDIO:</div>
-  <div id="log-box" class="log-container"></div>
+  <div style="width: 100%; max-width: 450px; margin-bottom: 5px; font-size: 0.8rem; color: #888;">HISTORIAL DEL DUELO:</div>
+  <div id="history-box" class="history-container">
+    <div style="color: #666; text-align: center; margin-top: 35px;">El historial de movimientos aparecerá aquí...</div>
+  </div>
 
   <script>
     const GIPHY_API_KEY = '5yg1leisOrrr7YY0BeZeVMaPxaMRgQdE'; 
 
-    // LISTA AMPLIADA DE MOVIMIENTOS AURA CON BÚSQUEDAS ESPECÍFICAS
     const AURA_MOVES = [
-      { name: 'SIX SEVEN', query: '67 meme funny' },
-      { name: 'RIZZ FACE', query: 'rizz face meme' },
-      { name: 'MEWING', query: 'mewing jawline meme' },
-      { name: 'SIGMA STAREDOWN', query: 'sigma stare patrick bateman' },
+      { name: 'SIX SEVEN', query: 'six seven dance' },
+      { name: 'RIZZ FACE', query: 'rizz face' },
+      { name: 'MEWING', query: 'mewing dance' },
+      { name: 'SIGMA STAREDOWN', query: 'sigma stare dance' },
       { name: 'CRISTIANO SIUUU', query: 'cristiano ronaldo siuuuu' },
-      { name: 'SUPREME RIZZ', query: 'unspoken rizz meme' },
-      { name: 'GIGACHAD FLEX', query: 'gigachad chad meme' },
-      { name: 'LOOKSMAXXING', query: 'bye bye meme' },
-      { name: 'SUPER SAIYAN AURA', query: 'anime aura glow powerup' },
-      { name: 'FINAL BOSS', query: 'final boss aura meme' }
+      { name: 'SUPREME RIZZ', query: 'unspoken rizz' },
+      { name: 'GIGACHAD FLEX', query: 'gigachad dance' },
+      { name: 'LOOKSMAXXING', query: 'bye bye dance' },
+      { name: 'SUPER SAIYAN AURA', query: 'dance aura' },
+{ name: 'DANCE FLOOR', query: 'dance floor' },
+{ name: 'DANCE CHILD', query: 'dance CHILD' },
+{ name: 'DANCE OLDMAN', query: 'dance OLD MAN' },
+      { name: 'FINAL BOSS', query: 'final boss' }
     ];
 
     let gifsCache = {};
     let audioCtx = null;
+
+    // VOZ DEL NARRADOR (SpeechSynthesis API)
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Cancelar locuciones anteriores
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 1.1; // Velocidad de narración
+        utterance.pitch = 0.9; // Tono más grave/épico
+        window.speechSynthesis.speak(utterance);
+      }
+    }
 
     function initAudio() {
       if (!audioCtx) {
@@ -269,7 +292,6 @@
 
     function playSound(type) {
       if (!audioCtx) return;
-
       const now = audioCtx.currentTime;
 
       if (type === 'turn') {
@@ -332,14 +354,21 @@
       }
     }
 
-    function addLog(msg, type = 'normal') {
-      const logBox = document.getElementById('log-box');
+    // AÑADIR REGISTRO AL HISTORIAL
+    function addHistoryEntry(text, type = '', points = '') {
+      const historyBox = document.getElementById('history-box');
+      
+      // Limpiar mensaje inicial si existe
+      if (historyBox.children.length === 1 && historyBox.children[0].tagName === 'DIV' && !historyBox.children[0].classList.contains('history-entry')) {
+        historyBox.innerHTML = '';
+      }
+
       const entry = document.createElement('div');
-      entry.className = `log-entry ${type === 'info' ? 'log-info' : ''}`;
-      const time = new Date().toLocaleTimeString();
-      entry.innerText = `[${time}] ${msg}`;
-      logBox.appendChild(entry);
-      logBox.scrollTop = logBox.scrollHeight;
+      entry.className = `history-entry ${type}`;
+      entry.innerHTML = `<span>${text}</span> ${points ? `<strong style="color:var(--gold)">+${points}</strong>` : ''}`;
+      
+      historyBox.appendChild(entry);
+      historyBox.scrollTop = historyBox.scrollHeight;
     }
 
     async function fetchOptimizedGiphy(moveQuery) {
@@ -358,7 +387,7 @@
           return urls;
         }
       } catch (error) {
-        addLog(`Error en búsqueda: ${error.message}`);
+        console.error("Error en búsqueda:", error);
       }
       return [];
     }
@@ -386,7 +415,9 @@
       card.classList.add(playerNum === 1 ? 'active-p1' : 'active-p2');
       banner.innerText = `J${playerNum} ejecutando ${move.name}...`;
 
-      addLog(`Consultando query: "${move.query}"`, 'info');
+      // NARRADOR: Anuncia el movimiento
+      speak(`Jugador ${playerNum}, ${move.name}`);
+
       const pool = await fetchOptimizedGiphy(move.query);
 
       if (pool.length > 0) {
@@ -420,12 +451,16 @@
 
       scoreEl.innerText = parseInt(scoreEl.innerText) + points;
 
+      // REGISTRAR EN EL HISTORIAL
+      addHistoryEntry(`J${playerNum}: ${move.name}`, `p${playerNum}`, points);
+
       setTimeout(() => {
         scoreEl.classList.remove('pop');
         card.classList.remove('impact');
       }, 500);
 
-      await new Promise(res => setTimeout(res, 2200));
+      // TIEMPO DE ESPERA AMPLIADO A 4.5 SEGUNDOS PARA VER EL GIF COMPLETO
+      await new Promise(res => setTimeout(res, 4500));
     }
 
     async function startAutoGame() {
@@ -438,18 +473,19 @@
 
       const startBtn = document.getElementById('start-btn');
       const banner = document.getElementById('banner');
-      document.getElementById('log-box').innerHTML = '';
+      document.getElementById('history-box').innerHTML = '';
 
       startBtn.disabled = true;
       document.getElementById('p1-score').innerText = '0';
       document.getElementById('p2-score').innerText = '0';
 
-      addLog("Iniciando partidas a 5 rondas...", 'info');
+      speak("Que comience el duelo de aura");
 
-      // BUCLE CONFIGURADO A 5 RONDAS
       for (let r = 1; r <= 5; r++) {
         banner.innerText = `--- RONDA ${r} DE 5 ---`;
-        await new Promise(res => setTimeout(res, 800));
+        addHistoryEntry(`--- RONDA ${r} ---`, 'round');
+        speak(`Ronda ${r}`);
+        await new Promise(res => setTimeout(res, 1500));
 
         await playTurn(1);
         await playTurn(2);
@@ -461,9 +497,20 @@
 
       playSound('victory');
 
-      if (p1 > p2) banner.innerText = "🏆 ¡JUGADOR 1 ES EL AURA MASTER!";
-      else if (p2 > p1) banner.innerText = "🏆 ¡JUGADOR 2 ES EL AURA MASTER!";
-      else banner.innerText = "🤝 ¡EMPATE TÁCTICO DE AURA!";
+      let resultText = "";
+      if (p1 > p2) {
+        resultText = "¡Jugador 1 es el Aura Master!";
+        banner.innerText = "🏆 ¡JUGADOR 1 ES EL AURA MASTER!";
+      } else if (p2 > p1) {
+        resultText = "¡Jugador 2 es el Aura Master!";
+        banner.innerText = "🏆 ¡JUGADOR 2 ES EL AURA MASTER!";
+      } else {
+        resultText = "Empate táctico de aura";
+        banner.innerText = "🤝 ¡EMPATE TÁCTICO DE AURA!";
+      }
+
+      speak(resultText);
+      addHistoryEntry(resultText, 'round');
 
       startBtn.disabled = false;
     }
